@@ -1,12 +1,15 @@
 package example.firestore.davidoh.firestoretodo.model;
 
+import android.os.Parcel;
+import android.os.Parcelable;
+
 import com.google.firebase.firestore.IgnoreExtraProperties;
 import com.google.firebase.firestore.ServerTimestamp;
 
 import java.util.Date;
 
 @IgnoreExtraProperties
-public class Note {
+public class Note implements Parcelable {
 
     private String title;
     private String content;
@@ -25,6 +28,25 @@ public class Note {
     public Note() {
 
     }
+
+    protected Note(Parcel in) {
+        title = in.readString();
+        content = in.readString();
+        note_id = in.readString();
+        user_id = in.readString();
+    }
+
+    public static final Creator<Note> CREATOR = new Creator<Note>() {
+        @Override
+        public Note createFromParcel(Parcel in) {
+            return new Note(in);
+        }
+
+        @Override
+        public Note[] newArray(int size) {
+            return new Note[size];
+        }
+    };
 
     public String getUser_id() {
         return user_id;
@@ -64,5 +86,18 @@ public class Note {
 
     public void setNote_id(String note_id) {
         this.note_id = note_id;
+    }
+
+    @Override
+    public int describeContents() {
+        return 0;
+    }
+
+    @Override
+    public void writeToParcel(Parcel parcel, int flags) {
+        parcel.writeString(title);
+        parcel.writeString(content);
+        parcel.writeString(note_id);
+        parcel.writeString(user_id);
     }
 }
