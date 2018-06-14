@@ -4,8 +4,11 @@ import android.content.Intent;
 import android.support.annotation.NonNull;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
+import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.support.v7.widget.LinearLayoutManager;
+import android.support.v7.widget.RecyclerView;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -15,12 +18,22 @@ import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.firestore.CollectionReference;
 import com.google.firebase.firestore.DocumentReference;
+import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.Query;
+import com.google.firebase.firestore.QueryDocumentSnapshot;
+import com.google.firebase.firestore.QuerySnapshot;
+
+import java.util.ArrayList;
 
 import example.firestore.davidoh.firestoretodo.model.Note;
 
-public class MainActivity extends AppCompatActivity implements View.OnClickListener, IMainActivity {
+public class MainActivity extends AppCompatActivity implements
+        View.OnClickListener,
+        IMainActivity,
+        SwipeRefreshLayout.OnRefreshListener {
 
     private static final String TAG = "MainActivity";
 
@@ -29,8 +42,16 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     //widget
     private FloatingActionButton mFab;
+    private RecyclerView mRecyclerView;
+    private SwipeRefreshLayout mSwipeRefreshLayout;
+
     //vars
-    View mParentLayout;
+    private View mParentLayout;
+    private ArrayList<Note> mNotes = new ArrayList<>();
+    private NoteRecyclerViewAdapter mNoteRecyclerViewAdapter;
+    private DocumentSnapshot mLastQueriedDocument;
+
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -38,10 +59,72 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         setContentView(R.layout.activity_main);
         mFab = findViewById(R.id.fab);
         mParentLayout = findViewById(android.R.id.content);
+        mRecyclerView = findViewById(R.id.recycler_view);
+        mSwipeRefreshLayout = findViewById(R.id.swipe_refresh_layout);
+
+        mFab.setOnClickListener(this);
+        mSwipeRefreshLayout.setOnRefreshListener(this);
 
         setupFirebaseAuth();
-        mFab.setOnClickListener(this);
+        initRecyclerView();
+        getNotes();
 
+
+    }
+
+    @Override
+    public void onRefresh() {
+        getNotes();
+        mSwipeRefreshLayout.setRefreshing(false);
+    }
+
+    private void getNotes() {
+
+        FirebaseFirestore db = FirebaseFirestore.getInstance();
+        CollectionReference notesCollectionsRef = db.collection("notes");
+
+        Query notesQuery = null;
+        if (mLastQueriedDocument != null) {
+            notesQuery = notesCollectionsRef
+                    .whereEqualTo("user_id", FirebaseAuth.getInstance().getCurrentUser().getUid())
+                    .orderBy("timestamp", Query.Direction.ASCENDING)
+                    .startAfter(mLastQueriedDocument);
+        }
+        else {
+            notesQuery = notesCollectionsRef
+                    .whereEqualTo("user_id", FirebaseAuth.getInstance().getCurrentUser().getUid())
+                    .orderBy("timestamp", Query.Direction.ASCENDING);
+        }
+
+        notesQuery.get().addOnCompleteListener(new OnCompleteListener<QuerySnapshot>() {
+            @Override
+            public void onComplete(@NonNull Task<QuerySnapshot> task) {
+                if (task.isSuccessful()) {
+                    for (QueryDocumentSnapshot document : task.getResult()) {
+                        Note note = document.toObject(Note.class);
+                        mNotes.add(note);
+                    }
+
+                    if (task.getResult().size() != 0) {
+                        mLastQueriedDocument = task.getResult().getDocuments().get(task.getResult().size() - 1);
+                    }
+
+                    mNoteRecyclerViewAdapter.notifyDataSetChanged();
+                }
+                else {
+                    makeSnackBarMessage("Query Failed. Check Logs");
+                }
+            }
+        });
+    }
+
+    private void initRecyclerView() {
+        if (mNoteRecyclerViewAdapter == null) {
+            mNoteRecyclerViewAdapter = new NoteRecyclerViewAdapter(this, mNotes);
+        }
+
+        mRecyclerView.setLayoutManager(new LinearLayoutManager(this));
+        mRecyclerView.setAdapter(mNoteRecyclerViewAdapter);
     }
 
     @Override
@@ -140,6 +223,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             public void onComplete(@NonNull Task<Void> task) {
                 if (task.isSuccessful()) {
                     makeSnackBarMessage("Created new note");
+                    getNotes();
                 }
                 else {
                     makeSnackBarMessage("Failed. Check log.");
@@ -147,4 +231,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             }
         });
     }
+
+
 }
