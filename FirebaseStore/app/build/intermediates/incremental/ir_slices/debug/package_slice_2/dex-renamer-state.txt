@@ -1,0 +1,4 @@
+#Fri Jun 08 01:18:05 KST 2018
+base.0=/AndroidProject/AndroidStudy/FirebaseStore/app/build/intermediates/transforms/dexMerger/debug/2
+path.0=classes.dex
+renamed.0=classes.dex
