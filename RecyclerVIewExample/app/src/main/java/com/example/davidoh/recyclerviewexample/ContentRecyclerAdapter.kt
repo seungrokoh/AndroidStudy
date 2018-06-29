@@ -35,6 +35,9 @@ class ContentRecyclerAdapter(val context: Context, val contentData: ArrayList<Co
 
             Glide.with(context).load(URL(content.photo)).into(image!!)
             //image?.setImageResource(resourId)
+            val resourId = context.resources.getIdentifier(content.photo, "drawable", context.packageName)
+            image?.setImageResource(resourId)
+          
             title?.text = content.title
             message?.text = content.message
 
