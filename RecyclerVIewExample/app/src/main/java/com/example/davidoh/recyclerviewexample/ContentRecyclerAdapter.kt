@@ -7,6 +7,8 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.TextView
+import com.bumptech.glide.Glide
+import java.net.URL
 
 class ContentRecyclerAdapter(val context: Context, val contentData: ArrayList<Content>) : RecyclerView.Adapter<ContentRecyclerAdapter.Holder>() {
 
@@ -29,8 +31,13 @@ class ContentRecyclerAdapter(val context: Context, val contentData: ArrayList<Co
         var image = itemView?.findViewById<ImageView>(R.id.layoutitem_imageview)
 
         fun bind(content: Content, context: Context){
+            //val resourId = context.resources.getIdentifier(content.photo, "drawable", context.packageName)
+
+            Glide.with(context).load(URL(content.photo)).into(image!!)
+            //image?.setImageResource(resourId)
             val resourId = context.resources.getIdentifier(content.photo, "drawable", context.packageName)
             image?.setImageResource(resourId)
+          
             title?.text = content.title
             message?.text = content.message
 
